@@ -67,15 +67,15 @@ do_sampling <- function(y, X, X_cntr, hh_id, loc_id,kappa,file){
                     phi_prior_var = phi_prior_var,
                     kappa = kappa)
   #set reasonable initial values
-  initc <- list(gamma1 = -1, 
+  initc <- list(gamma1 = .7, #1.2
                 gamma2 = rep(0, 7),
                 mu_a = coef(m1)[1], 
                 beta = coef(m1)[-1], 
                 sigma_a = .5*mean(m1$residuals^2)^(.5), sigma_a2 = .5*mean(m1$residuals^2),
-                sigma_v = .5*mean(m1$residuals^2)^(.5), sigma_v2 = .5*mean(m1$residuals^2),
+                sigma_v = .85,#.5*mean(m1$residuals^2)^(.5), sigma_v2 = .5*mean(m1$residuals^2),
                 sigma_l = .5*mean(m1$residuals^2)^(.5), sigma_l2 =.5*mean(m1$residuals^2),
                 u =.5*(max(imputed_f)-imputed_f) + .01, #approx. 50 percent of distance from  max
-                rho = .6, 
+                rho = .95, 
                 f_imp = rep(mean(imputed_f), N_miss),
                 phi = phi_prior_mean)
   
@@ -90,7 +90,7 @@ do_sampling <- function(y, X, X_cntr, hh_id, loc_id,kappa,file){
                          pars = par_keep,
                          include=TRUE,
                          init = inits,
-                         control = list(adapt_delta = 0.9)) 
+                         control = list(adapt_delta = 0.95)) 
   return(sm_sampled)
 }  #Sample with rstan
 #sm_sampled <- sampling(compiled_selection_model, 

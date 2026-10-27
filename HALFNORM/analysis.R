@@ -12,7 +12,7 @@ library(randomForest)
 library(Matching)
 library(bayesplot)
 library(scales)
-source("src/functions_HALFNORM.R")
+source("HALFNORM/functions_HALFNORM.R")
 options(mc.cores = parallel::detectCores()) 
 rstan_options(auto_write = TRUE)
 options(warn=-1)
@@ -124,8 +124,8 @@ median_age <- median(filter(kenya, sample_nutrition == 1)$caregiver)
 
 kenya$caregiver <- ifelse(kenya$caregiver >=median_age, 1, 0) #1 if older
 #based on matching or not, what hh codes are we using?
-#usehh <-unique(kenya$hhcode) #if using whole data set
-usehh <- unique(matched_rf$hhcode)  # if using matching scheme matched_rf
+usehh <-unique(kenya$hhcode) #if using whole data set
+#usehh <- unique(matched_rf$hhcode)  # if using matching scheme matched_rf
 kenya <- subset(kenya, hhcode %in% usehh)
 
 #what folder should the rstan RDS files be safed
@@ -200,7 +200,7 @@ diversity_sampled <- do_sampling(y=y_stand(kenya$diversity, kenya),
                                  X=full_X, 
                                  X_cntr = full_X_cntr,
                                  hh_id=kenya$hhcode, loc_id=kenya$location,
-                                 file = "src/selection_model2_HALFNORM.stan", kappa = 1)
+                                 file = "HALFNORM/selection_model2_HALFNORM.stan", kappa = 1)
 saveRDS(diversity_sampled, file = paste(subfolder,"diversity_sampled.rds", sep = "/"))
 
 
@@ -211,7 +211,7 @@ stunting_sampled <- do_sampling(y=nutrition_data$stunting,
                                 X=nutrition_X, 
                                 X_cntr = nutrition_X_cntr,
                                 hh_id=nutrition_data$hhcode, loc_id=nutrition_data$location, kappa = 1,
-                                file = "src/selection_model2_HALFNORM.stan" )
+                                file = "HALFNORM/selection_model2_HALFNORM.stan" )
 saveRDS(stunting_sampled, file =paste(subfolder, "stunting_sampled.rds", sep = "/"))
 
 # nutrition - wasting ---------------------------
@@ -219,7 +219,7 @@ wasting_sampled <- do_sampling(y=nutrition_data$wasting,
                                X=nutrition_X, 
                                X_cntr = nutrition_X_cntr,
                                hh_id=nutrition_data$hhcode, loc_id=nutrition_data$location, kappa = 1,
-                               file = "src/selection_model2_HALFNORM.stan" )
+                               file = "HALFNORM/selection_model2_HALFNORM.stan" )
 saveRDS(wasting_sampled, file =paste(subfolder, "wasting_sampled.rds", sep = "/"))
 
 # nutrition - underweight ---------------------------
@@ -227,7 +227,7 @@ underweight_sampled <- do_sampling(y=nutrition_data$underweight,
                                    X=nutrition_X, 
                                    X_cntr = nutrition_X_cntr,
                                    hh_id=nutrition_data$hhcode, loc_id=nutrition_data$location, kappa = 1,
-                                   file = "src/selection_model2_HALFNORM.stan" )
+                                   file = "HALFNORM/selection_model2_HALFNORM.stan" )
 saveRDS(underweight_sampled, file =paste(subfolder, "underweight_sampled.rds", sep = "/"))
 
 
@@ -245,7 +245,7 @@ cal_pd_sampled <- do_sampling(y=log(kenya$cal_pd_windsor),
                               X=full_X, 
                               X_cntr = full_X_cntr,
                               hh_id=kenya$hhcode, loc_id=kenya$location, kappa = 1,
-                              file = "src/selection_model2_HALFNORM.stan" )
+                              file = "HALFNORM/selection_model2_HALFNORM.stan" )
 saveRDS(cal_pd_sampled, file =paste(subfolder, "cal_pd_sampled.rds", sep = "/"))
 
 
@@ -263,7 +263,7 @@ cal_micro_sampled <- do_sampling(y=ihs_trans(kenya$cal_micro_windsor),
                                  X=full_X, 
                                  X_cntr = full_X_cntr,
                                  hh_id=kenya$hhcode, loc_id=kenya$location, kappa = 1,
-                                 file = "src/selection_model2_HALFNORM.stan" )
+                                 file = "HALFNORM/selection_model2_HALFNORM.stan" )
 saveRDS(cal_micro_sampled, file =paste(subfolder, "cal_micro_sampled.rds", sep = "/"))
 
 # nutrition - FRUITS & VEGGIES  ---------------------------
@@ -279,7 +279,7 @@ cal_fv_sampled <- do_sampling(y=ihs_trans(kenya$cal_fv_windsor),
                               X=full_X, 
                               X_cntr = full_X_cntr,
                               hh_id=kenya$hhcode, loc_id=kenya$location, kappa = 1,
-                              file = "src/selection_model2_HALFNORM.stan" )
+                              file = "HALFNORM/selection_model2_HALFNORM.stan" )
 saveRDS(cal_fv_sampled, file =paste(subfolder, "cal_fv_sampled.rds", sep = "/"))
 
 # nutrition - ANIMAL PROTEIN  ---------------------------
@@ -295,7 +295,7 @@ cal_anim_sampled <- do_sampling(y=ihs_trans(kenya$cal_anim_windsor),
                                 X=full_X, 
                                 X_cntr = full_X_cntr,
                                 hh_id=kenya$hhcode, loc_id=kenya$location, kappa = 1,
-                                file = "src/selection_model2_HALFNORM.stan" )
+                                file = "HALFNORM/selection_model2_HALFNORM.stan" )
 saveRDS(cal_anim_sampled, file =paste(subfolder, "cal_anim_sampled.rds", sep = "/"))
 
 
@@ -314,20 +314,22 @@ cal_pd_sampled <- readRDS(paste(subfolder,'cal_pd_sampled.rds', sep = "/"))
 stan_trace(diversity_sampled, par = c("phi","gamma1","gamma2[4]", "gamma2[7]", "sigma_a", "sigma_v",  "beta[4]", "beta[7]","rho", "lp__"))#need to redo
 stan_trace(wasting_sampled, par = c("phi","gamma1","gamma2[4]", "gamma2[7]","sigma_a", "sigma_v",  "beta[4]", "beta[7]","rho", "lp__")) #one rogue chain - redo 11/29
 stan_trace(underweight_sampled, par = c("phi","gamma1","gamma2[4]", "gamma2[7]","beta[4]", "beta[7]", "sigma_a", "sigma_v",  "beta[24]", "beta[7]","rho", "lp__", "f_pred[1]", "f_pred[10]"))
+stan_trace(cal_micro_sampled, par = c("phi","gamma1", "gamma2[4]", "gamma2[7]", "sigma_a", "sigma_v",  "beta[4]", "beta[7]","rho", "lp__"))
+#rho should be high - use starting values
 stan_trace(cal_fv_sampled, par = c("phi","gamma1", "gamma2[4]", "gamma2[7]", "sigma_a", "sigma_v",  "beta[4]", "beta[7]","rho", "lp__"))
-
+stan_trace(cal_anim_sampled, par = c("phi","gamma1", "gamma2[4]", "gamma2[7]", "sigma_a", "sigma_v",  "beta[4]", "beta[7]","rho", "lp__"))
 
 #Summarise R-hat values, effective sample sizes
 #sort by rhat, n_eff, see trouble spots
 #matched : original
-summary(diversity_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>%   head(6)  #original:ok (low =93) 05/07/25 matched:good 6/11
-summary(stunting_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>%head(6)   #original: good 05/05/2025   matched: good 6/11/25  
-summary(wasting_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>%head(6)    #original: good 05/05/2025 matched: ok 6/11 lowest 63
-summary(underweight_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>%head(6)#original: good  05/05/2025 matched: good 6/11
-summary(cal_pd_sampled)$summary %>% as.data.frame() %>% arrange(n_eff) %>%head(6) # original: good 05/07/2025 matched: good 6/11/25
-summary(cal_micro_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>% head(6) # original: good 05/07/2025 matched: good 6/11
-summary(cal_fv_sampled)$summary %>% as.data.frame() %>% arrange(n_eff) %>%head(6) # original: good 05/07/25 matched: good 6/21
-summary(cal_anim_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>% head(6) # original: good 05/07/25 matched: good
+summary(diversity_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>%   head(6)  #gamma2 parameters have n_effs lower than 100
+summary(stunting_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>%head(6)   #good 10/23  
+summary(wasting_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>%head(6)    #good 10/23
+summary(underweight_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>%head(6)#good 10/23
+summary(cal_pd_sampled)$summary %>% as.data.frame() %>% arrange(n_eff) %>%head(6) # good 10/26
+summary(cal_micro_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>% head(6) # good enough
+summary(cal_fv_sampled)$summary %>% as.data.frame() %>% arrange(n_eff) %>%head(6) # good 10/27
+summary(cal_anim_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>% head(6) # good 10/27
 
 
 # Treatment effects ---------------------------
