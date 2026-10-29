@@ -479,6 +479,18 @@ filter(trt, by != "Overall") %>%
 ggsave(paste(subfolder, "trt_effects.pdf", sep = "/"), width = 9, height =7, units = "in" )
 
 
+elpd_diversity_halfnormal <- get_loo_halfnormal(
+  fit = diversity_halfnormal_sampled,
+  y = y_stand(kenya$diversity, kenya),
+  X = full_X,
+  hh_id = kenya$hhcode,
+  loc_id = kenya$location
+)
+#extract the estimate and standard error
+elpd_diversity_halfnormal$estimates["elpd_loo", "Estimate"]
+elpd_diversity_halfnormal$estimates["elpd_loo", "SE"]
+
+
 # make treatment table
 
 df_formatted <- ss %>%

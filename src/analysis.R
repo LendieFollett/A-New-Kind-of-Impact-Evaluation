@@ -124,12 +124,12 @@ median_age <- median(filter(kenya, sample_nutrition == 1)$caregiver)
 
 kenya$caregiver <- ifelse(kenya$caregiver >=median_age, 1, 0) #1 if older
 #based on matching or not, what hh codes are we using?
-#usehh <-unique(kenya$hhcode) #if using whole data set
-usehh <- unique(matched_rf$hhcode)  # if using matching scheme matched_rf
+usehh <-unique(kenya$hhcode) #if using whole data set
+#usehh <- unique(matched_rf$hhcode)  # if using matching scheme matched_rf
 kenya <- subset(kenya, hhcode %in% usehh)
 
 #what folder should the rstan RDS files be safed
-subfolder <- "Matched"#"Original"#
+subfolder <- "Original"#"Matched"#
 
 full_X <- kenya%>%
   mutate(land = ihs_trans(land),
@@ -475,6 +475,30 @@ filter(trt, by != "Overall") %>%
   scale_colour_grey("")+guides(color = guide_legend(reverse = TRUE)) +
   labs(x = "", y = "Treatment Effect") 
 ggsave(paste(subfolder, "trt_effects.pdf", sep = "/"), width = 9, height =7, units = "in" )
+
+
+
+
+# CALCULATE ELPD
+elpd_diversity <- get_loo_existing(
+  fit = diversity_sampled,
+  y = y_stand(kenya$diversity, kenya),
+  X = full_X,
+  hh_id = kenya$hhcode,
+  loc_id = kenya$location
+)
+
+elpd_diversity
+
+
+elpd_stunting <- get_loo_existing(
+  fit = stunting_sampled,
+  y = nutrition_data$stunting,
+  X = nutrition_X,
+  hh_id = nutrition_data$hhcode,
+  loc_id = nutrition_data$location
+)
+
 
 
 # make treatment table

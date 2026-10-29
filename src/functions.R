@@ -428,5 +428,99 @@ cleanObject <- function(object,pars){
 }
 
 
+library(rstan)
+library(loo)
+
+get_loo_existing <- function(fit, y, X, hh_id, loc_id,
+                             rho_draws = NULL) {
+  
+  # Recreate the observation indices used in do_sampling()
+  hh <- as.numeric(as.factor(hh_id))
+  loc <- as.numeric(as.factor(loc_id))
+  
+  # Score observed outcomes only
+  obs <- which(!is.na(y))
+  
+  # Extract saved posterior draws
+  s <- rstan::extract(fit)
+  
+  beta   <- s$beta
+  alpha  <- s$alpha
+  tau    <- s$tau
+  gamma1 <- as.vector(s$gamma1)
+  gamma2 <- s$gamma2
+  sigv   <- as.vector(s$sigma_v)
+  
+  if (is.null(rho_draws)) {
+    rho_draws <- as.vector(s$rho)
+  }
+  
+  S <- nrow(beta)
+  N <- length(obs)
+  
+  stopifnot(nrow(X) == length(y),
+            length(hh) == length(y),
+            length(loc) == length(y),
+            length(sigv) == S)
+  
+  log_lik <- matrix(NA_real_, nrow = S, ncol = N)
+  
+  for (j in seq_along(obs)) {
+    
+    i <- obs[j]
+    
+    # Frontier mean for each posterior draw
+    mu <- as.vector(
+      alpha[, hh[i]] +
+        tau[, loc[i]] +
+        beta %*% X[i, ]
+    )
+    
+    # Conditional mean of exponential deviation
+    lambda <- exp(
+      gamma1 +
+        as.vector(gamma2 %*% X[i, 1:7])
+    )
+    
+    resid <- y[i] - mu
+    
+    # Normal component
+    log_normal <- dnorm(
+      y[i], mean = mu, sd = sigv, log = TRUE
+    )
+    
+    # Normal minus exponential component
+    log_exp <- -log(lambda) +
+      resid / lambda +
+      0.5 * (sigv / lambda)^2 +
+      pnorm(
+        -resid / sigv - sigv / lambda,
+        log.p = TRUE
+      )
+    
+    rho_i <- if (is.matrix(rho_draws)) {
+      rho_draws[, i]
+    } else {
+      rho_draws
+    }
+    
+    # Numerically stable log mixture
+    a <- log(rho_i) + log_exp
+    b <- log1p(-rho_i) + log_normal
+    m <- pmax(a, b)
+    
+    log_lik[, j] <- m + log(
+      exp(a - m) + exp(b - m)
+    )
+  }
+  
+  # Check for numerical problems
+  if (any(!is.finite(log_lik))) {
+    stop("Non-finite log likelihood values found.")
+  }
+  
+  loo::loo(log_lik)
+}
+
 
 
