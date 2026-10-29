@@ -84,9 +84,12 @@ do_sampling <- function(y, X, X_cntr, hh_id, loc_id,kappa,file){
   #Sample with rstan
   sm_sampled <- sampling(compiled_selection_model, 
                          data = data.list, 
-                         chains = 4,
-                         iter =15000,
-                         warmup = 5000,
+                         chains = 4, #JUST FOR ELPD CALCS.....
+                         iter = 4000,
+                         warmup = 2000,
+                         #chains = 4,
+                         #iter =15000,
+                         #warmup = 5000,
                          pars = par_keep,
                          include=TRUE,
                          init = inits,

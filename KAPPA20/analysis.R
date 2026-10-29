@@ -278,7 +278,7 @@ hist(ihs_trans(kenya$cal_fv_windsor))
 cal_fv_sampled <- do_sampling(y=ihs_trans(kenya$cal_fv_windsor),
                               X=full_X, 
                               X_cntr = full_X_cntr,
-                              hh_id=kenya$hhcode, loc_id=kenya$location, kappa = 20,
+                              hh_id=kenya$hhcode, loc_id=kenya$location, kappa = 10,
                               file = "src/selection_model2.stan" )
 saveRDS(cal_fv_sampled, file =paste(subfolder, "cal_fv_sampled.rds", sep = "/"))
 
@@ -327,9 +327,9 @@ summary(stunting_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>%head(
 summary(wasting_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>%head(6)    #good 10/29
 summary(underweight_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>%head(6)#good 10/29
 summary(cal_pd_sampled)$summary %>% as.data.frame() %>% arrange(n_eff) %>%head(6) # good 10/29
-summary(cal_micro_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>% head(6) # good enough
-summary(cal_fv_sampled)$summary %>% as.data.frame() %>% arrange(n_eff) %>%head(6) # good 10/27
-summary(cal_anim_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>% head(6) # good 10/27
+summary(cal_micro_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>% head(6) # good 10/29
+summary(cal_fv_sampled)$summary %>% as.data.frame() %>% arrange(n_eff) %>%head(6) # good 10/29
+summary(cal_anim_sampled)$summary %>%as.data.frame() %>% arrange(n_eff) %>% head(6) # good 10/29
 
 
 # Treatment effects ---------------------------
@@ -482,14 +482,107 @@ ggsave(paste(subfolder, "trt_effects.pdf", sep = "/"), width = 9, height =7, uni
 
 ## LOO estimates of ELPD--------------
 
-elpd_cal_anim<- loo(extract_log_lik(cal_anim_sampled))
-elpd_cal_fv<- loo(extract_log_lik(cal_fv_sampled))
-elpd_cal_pd<- loo(extract_log_lik(cal_pd_sampled))
-elpd_cal_micro<- loo(extract_log_lik(cal_micro_sampled))
-elpd_diversity<- loo(extract_log_lik(diversity_sampled))
-elpd_stunting<- loo(extract_log_lik(stunting_sampled))
-elpd_wasting<- loo(extract_log_lik(wasting_sampled))
-elpd_underweight<- loo(extract_log_lik(underweight_sampled))
+# CALCULATE ELPD
+elpd_diversity <- get_loo_existing(
+  fit = diversity_sampled,
+  y = y_stand(kenya$diversity, kenya),
+  X = full_X,
+  hh_id = kenya$hhcode,
+  loc_id = kenya$location
+)
+
+
+elpd_stunting <- get_loo_existing(
+  fit = stunting_sampled,
+  y = nutrition_data$stunting,
+  X = nutrition_X,
+  hh_id = nutrition_data$hhcode,
+  loc_id = nutrition_data$location
+)
+
+# Wasting
+elpd_wasting <- get_loo_existing(
+  fit = wasting_sampled,
+  y = nutrition_data$wasting,
+  X = nutrition_X,
+  hh_id = nutrition_data$hhcode,
+  loc_id = nutrition_data$location
+)
+
+# Underweight
+elpd_underweight <- get_loo_existing(
+  fit = underweight_sampled,
+  y = nutrition_data$underweight,
+  X = nutrition_X,
+  hh_id = nutrition_data$hhcode,
+  loc_id = nutrition_data$location
+)
+
+# Calories per day (log-transformed, winsorized)
+elpd_cal_pd <- get_loo_existing(
+  fit = cal_pd_sampled,
+  y = log(kenya$cal_pd_windsor),
+  X = full_X,
+  hh_id = kenya$hhcode,
+  loc_id = kenya$location
+)
+
+# Calories from micronutrients (IHS-transformed, winsorized)
+elpd_cal_micro <- get_loo_existing(
+  fit = cal_micro_sampled,
+  y = ihs_trans(kenya$cal_micro_windsor),
+  X = full_X,
+  hh_id = kenya$hhcode,
+  loc_id = kenya$location
+)
+
+# Calories from fruits and vegetables (IHS-transformed, winsorized)
+elpd_cal_fv <- get_loo_existing(
+  fit = cal_fv_sampled,
+  y = ihs_trans(kenya$cal_fv_windsor),
+  X = full_X,
+  hh_id = kenya$hhcode,
+  loc_id = kenya$location
+)
+
+# Calories from animal protein (IHS-transformed, winsorized)
+elpd_cal_anim <- get_loo_existing(
+  fit = cal_anim_sampled,
+  y = ihs_trans(kenya$cal_anim_windsor),
+  X = full_X,
+  hh_id = kenya$hhcode,
+  loc_id = kenya$location
+)
+
+elpd_results <- list(
+  diversity   = elpd_diversity,
+  stunting    = elpd_stunting,
+  wasting     = elpd_wasting,
+  underweight = elpd_underweight,
+  cal_pd      = elpd_cal_pd,
+  cal_micro   = elpd_cal_micro,
+  cal_fv      = elpd_cal_fv,
+  cal_anim    = elpd_cal_anim
+)
+
+library(dplyr)
+library(purrr)
+library(tibble)
+
+elpd_df <- imap_dfr(elpd_results, function(x, name) {
+  tibble(
+    outcome = name,
+    elpd = x$estimates["elpd_loo", "Estimate"],
+    se = x$estimates["elpd_loo", "SE"]
+  )
+}) %>%
+  mutate(across(c(elpd, se), ~ round(.x, 2)))
+
+print(elpd_df)
+
+
+elpd_df%>%
+  write.csv(paste(subfolder,"elpd_df.csv", sep = "/"), row.names = FALSE)
 
 # make treatment table
 

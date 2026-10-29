@@ -479,6 +479,7 @@ ggsave(paste(subfolder, "trt_effects.pdf", sep = "/"), width = 9, height =7, uni
 
 
 
+
 # CALCULATE ELPD
 elpd_diversity <- get_loo_existing(
   fit = diversity_sampled,
@@ -487,9 +488,7 @@ elpd_diversity <- get_loo_existing(
   hh_id = kenya$hhcode,
   loc_id = kenya$location
 )
-
-elpd_diversity
-
+rm(diversity_sampled)
 
 elpd_stunting <- get_loo_existing(
   fit = stunting_sampled,
@@ -498,6 +497,92 @@ elpd_stunting <- get_loo_existing(
   hh_id = nutrition_data$hhcode,
   loc_id = nutrition_data$location
 )
+rm(stunting_sampled)
+# Wasting
+elpd_wasting <- get_loo_existing(
+  fit = wasting_sampled,
+  y = nutrition_data$wasting,
+  X = nutrition_X,
+  hh_id = nutrition_data$hhcode,
+  loc_id = nutrition_data$location
+)
+rm(wasting_sampled)
+# Underweight
+elpd_underweight <- get_loo_existing(
+  fit = underweight_sampled,
+  y = nutrition_data$underweight,
+  X = nutrition_X,
+  hh_id = nutrition_data$hhcode,
+  loc_id = nutrition_data$location
+)
+rm(underweight_sampled)
+# Calories per day (log-transformed, winsorized)
+elpd_cal_pd <- get_loo_existing(
+  fit = cal_pd_sampled,
+  y = log(kenya$cal_pd_windsor),
+  X = full_X,
+  hh_id = kenya$hhcode,
+  loc_id = kenya$location
+)
+rm(cal_pd_sampled)
+# Calories from micronutrients (IHS-transformed, winsorized)
+elpd_cal_micro <- get_loo_existing(
+  fit = cal_micro_sampled,
+  y = ihs_trans(kenya$cal_micro_windsor),
+  X = full_X,
+  hh_id = kenya$hhcode,
+  loc_id = kenya$location
+)
+rm(cal_micro_sampled)
+# Calories from fruits and vegetables (IHS-transformed, winsorized)
+elpd_cal_fv <- get_loo_existing(
+  fit = cal_fv_sampled,
+  y = ihs_trans(kenya$cal_fv_windsor),
+  X = full_X,
+  hh_id = kenya$hhcode,
+  loc_id = kenya$location
+)
+rm(cal_fv_sampled)
+# Calories from animal protein (IHS-transformed, winsorized)
+elpd_cal_anim <- get_loo_existing(
+  fit = cal_anim_sampled,
+  y = ihs_trans(kenya$cal_anim_windsor),
+  X = full_X,
+  hh_id = kenya$hhcode,
+  loc_id = kenya$location
+)
+rm(cal_anim_sampled)
+
+
+elpd_results <- list(
+  diversity   = elpd_diversity,
+  stunting    = elpd_stunting,
+  wasting     = elpd_wasting,
+  underweight = elpd_underweight,
+  cal_pd      = elpd_cal_pd,
+  cal_micro   = elpd_cal_micro,
+  cal_fv      = elpd_cal_fv,
+  cal_anim    = elpd_cal_anim
+)
+
+library(dplyr)
+library(purrr)
+library(tibble)
+
+elpd_df <- imap_dfr(elpd_results, function(x, name) {
+  tibble(
+    outcome = name,
+    elpd = x$estimates["elpd_loo", "Estimate"],
+    se = x$estimates["elpd_loo", "SE"]
+  )
+}) %>%
+  mutate(across(c(elpd, se), ~ round(.x, 2)))
+
+print(elpd_df)
+
+
+elpd_df%>%
+  write.csv(paste(subfolder,"elpd_df.csv", sep = "/"), row.names = FALSE)
 
 
 
