@@ -90,7 +90,7 @@ do_sampling <- function(y, X, X_cntr, hh_id, loc_id,kappa,file){
                          pars = par_keep,
                          include=TRUE,
                          init = inits,
-                         control = list(adapt_delta = 0.95)) 
+                         control = list(adapt_delta = 0.90)) 
   return(sm_sampled)
 }  #Sample with rstan
 #sm_sampled <- sampling(compiled_selection_model, 
